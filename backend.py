@@ -134,7 +134,7 @@ def mint():
                 "scheme": "exact",
                 "network": "base",
                 "maxAmountRequired": str(MINT_PRICE),
-                "resource": "https://stupid404.onrender.com/api/mint",
+                "resource": "https://stupid402.onrender.com/api/mint",
                 "description": f"Mint STUPID402 NFT for {MINT_PRICE / 1000000} USDC",
                 "mimeType": "application/json",
                 "payTo": RECIPIENT_ADDRESS,
@@ -294,4 +294,5 @@ if __name__ == '__main__':
     
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
