@@ -4,12 +4,14 @@ Backend API для NFT минта с x402
 Полная рабочая версия для x402scan.com
 """
 
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, render_template
 from web3 import Web3
 from dotenv import load_dotenv
 import os
 import json
 import base64
+import sys
+import traceback
 
 # Загружаем переменные из .env файла
 load_dotenv()
@@ -28,6 +30,11 @@ RECIPIENT_ADDRESS = os.getenv("RECIPIENT_ADDRESS")  # Адрес получат�
 
 w3 = Web3(Web3.HTTPProvider(BASE_RPC))
 
+# Функция для логирования с flush
+def log(message):
+    print(message)
+    sys.stdout.flush()
+
 # ABI для NFT контракта
 NFT_ABI = [
     {
@@ -43,6 +50,13 @@ NFT_ABI = [
         "outputs": [{"name": "", "type": "uint256"}],
         "stateMutability": "view",
         "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "MAX_SUPPLY",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
     }
 ]
 
@@ -50,7 +64,7 @@ NFT_ABI = [
 # X402 ФУНКЦИИ
 # ═══════════════════════════════════════════════════════════
 
-# ABI для USDC контракта (EIP-3009 transferWithAuthorization)
+# ABI для USDC контракта (EIP-3009)
 USDC_ABI = [
     {
         "inputs": [
@@ -65,6 +79,23 @@ USDC_ABI = [
             {"name": "s", "type": "bytes32"}
         ],
         "name": "transferWithAuthorization",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"name": "from", "type": "address"},
+            {"name": "to", "type": "address"},
+            {"name": "value", "type": "uint256"},
+            {"name": "validAfter", "type": "uint256"},
+            {"name": "validBefore", "type": "uint256"},
+            {"name": "nonce", "type": "bytes32"},
+            {"name": "v", "type": "uint8"},
+            {"name": "r", "type": "bytes32"},
+            {"name": "s", "type": "bytes32"}
+        ],
+        "name": "receiveWithAuthorization",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -94,24 +125,33 @@ def decode_x402_payment(x_payment_header):
             'valid': True
         }
     except Exception as e:
-        print(f"Ошибка декодирования x402: {e}")
+        log(f"❌ Ошибка декодирования x402: {e}")
+        log(traceback.format_exc())
         return {'valid': False}
 
 def execute_x402_payment(x_payment_header):
     """Выполняет EIP-3009 transferWithAuthorization для получения USDC"""
+    log("🔍 Начинаем обработку платежа...")
     payment = decode_x402_payment(x_payment_header)
     
     if not payment['valid']:
+        log("❌ Невалидный формат платежа")
         return False, "Invalid payment format", None
+    
+    log(f"✅ Платеж декодирован: from={payment['from']}, to={payment['to']}, value={payment['value']}")
     
     # Проверяем базовые параметры
     if payment['to'].lower() != RECIPIENT_ADDRESS.lower():
+        log(f"❌ Неправильный получатель: {payment['to']} != {RECIPIENT_ADDRESS}")
         return False, f"Wrong recipient: {payment['to']}", None
     
     if payment['value'] < MINT_PRICE:
+        log(f"❌ Недостаточная сумма: {payment['value']} < {MINT_PRICE}")
         return False, f"Insufficient payment: {payment['value']} < {MINT_PRICE}", None
     
     try:
+        log("💰 Подготовка transferWithAuthorization...")
+        
         # Подготавливаем параметры для transferWithAuthorization
         signature = payment['signature']
         
@@ -123,6 +163,8 @@ def execute_x402_payment(x_payment_header):
         s = '0x' + signature[64:128]
         v = int(signature[128:130], 16)
         
+        log(f"🔐 Подпись распарсена: v={v}, r={r[:10]}..., s={s[:10]}...")
+        
         # Создаем контракт USDC
         usdc_contract = w3.eth.contract(
             address=Web3.to_checksum_address(USDC_ADDRESS),
@@ -131,9 +173,16 @@ def execute_x402_payment(x_payment_header):
         
         # Получаем аккаунт админа
         admin = w3.eth.account.from_key(ADMIN_PRIVATE_KEY)
+        log(f"👤 Admin адрес: {admin.address}")
         
-        # Строим транзакцию transferWithAuthorization
-        tx = usdc_contract.functions.transferWithAuthorization(
+        # Получаем nonce
+        admin_nonce = w3.eth.get_transaction_count(admin.address)
+        gas_price = w3.eth.gas_price
+        log(f"⛽ Gas price: {gas_price}, Admin nonce: {admin_nonce}")
+        
+        # Строим транзакцию receiveWithAuthorization (для получателя)
+        log("📝 Строим транзакцию receiveWithAuthorization...")
+        tx = usdc_contract.functions.receiveWithAuthorization(
             Web3.to_checksum_address(payment['from']),
             Web3.to_checksum_address(payment['to']),
             payment['value'],
@@ -145,33 +194,46 @@ def execute_x402_payment(x_payment_header):
             Web3.to_bytes(hexstr=s)
         ).build_transaction({
             'from': admin.address,
-            'nonce': w3.eth.get_transaction_count(admin.address),
-            'gas': 100000,
-            'gasPrice': w3.eth.gas_price,
+            'nonce': admin_nonce,
+            'gas': 150000,  # Увеличен лимит газа
+            'gasPrice': gas_price,
             'chainId': 8453
         })
         
+        log("✍️ Подписываем транзакцию...")
         # Подписываем и отправляем
         signed = admin.sign_transaction(tx)
+        
+        log("📤 Отправляем транзакцию в блокчейн...")
         payment_tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        log(f"⏳ TX отправлена: {payment_tx_hash.hex()}, ждем подтверждения...")
         
         # Ждем подтверждения
         receipt = w3.eth.wait_for_transaction_receipt(payment_tx_hash, timeout=120)
         
+        log(f"📋 Receipt получен: status={receipt['status']}, gas_used={receipt['gasUsed']}")
+        
         if receipt['status'] != 1:
+            log(f"❌ Транзакция провалилась! Receipt: {receipt}")
             return False, "Payment transaction failed", None
         
-        print(f"💰 USDC получены! TX: {payment_tx_hash.hex()}")
+        log(f"💰 USDC получены! TX: {payment_tx_hash.hex()}")
         return True, "Payment successful", payment_tx_hash.hex()
         
     except Exception as e:
         error_msg = str(e)
-        print(f"❌ Ошибка выполнения платежа: {error_msg}")
+        log(f"❌ Ошибка выполнения платежа: {error_msg}")
+        log(f"📜 Traceback:\n{traceback.format_exc()}")
         return False, f"Payment execution failed: {error_msg}", None
 
 # ═══════════════════════════════════════════════════════════
 # API ENDPOINTS
 # ═══════════════════════════════════════════════════════════
+
+@app.route('/', methods=['GET'])
+def index():
+    """Главная страница с информацией о проекте"""
+    return render_template('index.html', contract=NFT_CONTRACT)
 
 @app.route('/api/mint', methods=['GET', 'POST', 'OPTIONS'])
 def mint():
@@ -256,19 +318,19 @@ def mint():
     if not to_address:
         to_address = payment['from']
     
-    print(f"📝 Запрос минта для: {to_address}")
+    log(f"📝 Запрос минта для: {to_address}")
     
     # Выполняем x402 платеж (получаем USDC)
-    print(f"💰 Выполняем transferWithAuthorization...")
+    log(f"💰 Выполняем transferWithAuthorization...")
     payment_success, payment_message, payment_tx = execute_x402_payment(x_payment)
     if not payment_success:
-        print(f"❌ Платеж не выполнен: {payment_message}")
+        log(f"❌ Платеж не выполнен: {payment_message}")
         return jsonify({
             "x402Version": 1,
             "error": payment_message
         }), 402
     
-    print(f"✅ USDC получены! TX: {payment_tx}")
+    log(f"✅ USDC получены! TX: {payment_tx}")
     
     # Минтим NFT
     try:
@@ -287,10 +349,11 @@ def mint():
         # Получаем текущий tokenId
         try:
             current_token_id = nft_contract.functions.currentTokenId().call()
-            print(f"📊 Текущий tokenId: {current_token_id}")
+            log(f"📊 Текущий tokenId: {current_token_id}")
         except:
             current_token_id = "unknown"
         
+        log("🎨 Минтим NFT...")
         # Строим транзакцию минта
         tx = nft_contract.functions.mint(
             Web3.to_checksum_address(to_address)
@@ -306,7 +369,7 @@ def mint():
         signed = admin.sign_transaction(tx)
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         
-        print(f"🚀 NFT заминчен! TX: {tx_hash.hex()}")
+        log(f"🚀 NFT заминчен! TX: {tx_hash.hex()}")
         
         response = jsonify({
             "x402Version": 1,
@@ -324,7 +387,8 @@ def mint():
         return response
     
     except Exception as e:
-        print(f"❌ Ошибка минта: {str(e)}")
+        log(f"❌ Ошибка минта: {str(e)}")
+        log(f"📜 Traceback:\n{traceback.format_exc()}")
         return jsonify({
             "x402Version": 1,
             "error": str(e)
@@ -339,15 +403,19 @@ def info():
             abi=NFT_ABI
         )
         current_token_id = nft_contract.functions.currentTokenId().call()
-    except:
+        max_supply = nft_contract.functions.MAX_SUPPLY().call()
+    except Exception as e:
+        log(f"⚠️ Error reading contract: {e}")
         current_token_id = "unknown"
+        max_supply = 1000
     
     return jsonify({
         "contract": NFT_CONTRACT,
         "price": MINT_PRICE,
         "price_usdc": MINT_PRICE / 1000000,
         "recipient": RECIPIENT_ADDRESS,
-        "minted": current_token_id
+        "minted": current_token_id,
+        "maxSupply": max_supply
     })
 
 @app.route('/health', methods=['GET'])
@@ -368,13 +436,13 @@ def after_request(response):
     return response
 
 if __name__ == '__main__':
-    print("═══════════════════════════════════════════════════════════")
-    print("🚀 X402 NFT Mint API")
-    print("═══════════════════════════════════════════════════════════")
-    print(f"📍 Contract: {NFT_CONTRACT}")
-    print(f"💰 Price: {MINT_PRICE / 1000000} USDC")
-    print(f"📬 Recipient: {RECIPIENT_ADDRESS}")
-    print("═══════════════════════════════════════════════════════════")
+    log("═══════════════════════════════════════════════════════════")
+    log("🚀 X402 NFT Mint API")
+    log("═══════════════════════════════════════════════════════════")
+    log(f"📍 Contract: {NFT_CONTRACT}")
+    log(f"💰 Price: {MINT_PRICE / 1000000} USDC")
+    log(f"📬 Recipient: {RECIPIENT_ADDRESS}")
+    log("═══════════════════════════════════════════════════════════")
     
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
