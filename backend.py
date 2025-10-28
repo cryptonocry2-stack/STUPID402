@@ -194,6 +194,7 @@ def mint():
                 "payTo": RECIPIENT_ADDRESS,
                 "resource": "https://stupid402.onrender.com/api/mint",
                 "description": f"Mint STUPID402 NFT for {MINT_PRICE / 1000000} USDC",
+                "mimeType": "application/json",
                 "maxTimeoutSeconds": 300
             }]
         }), 402
