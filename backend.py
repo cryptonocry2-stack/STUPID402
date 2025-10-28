@@ -189,33 +189,12 @@ def mint():
             "accepts": [{
                 "scheme": "exact",
                 "network": "base",
+                "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
                 "maxAmountRequired": str(MINT_PRICE),
+                "payTo": RECIPIENT_ADDRESS,
                 "resource": "https://stupid402.onrender.com/api/mint",
                 "description": f"Mint STUPID402 NFT for {MINT_PRICE / 1000000} USDC",
-                "mimeType": "application/json",
-                "payTo": RECIPIENT_ADDRESS,
-                "maxTimeoutSeconds": 300,
-                "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",  # USDC на Base
-                "outputSchema": {
-                    "input": {
-                        "type": "http",
-                        "method": "POST",
-                        "bodyType": "json",
-                        "bodyFields": {
-                            "to": {
-                                "type": "string",
-                                "required": False,
-                                "description": "NFT recipient address (optional, defaults to payer)"
-                            }
-                        }
-                    },
-                    "output": {
-                        "success": {"type": "boolean"},
-                        "tx": {"type": "string"},
-                        "to": {"type": "string"},
-                        "tokenId": {"type": "number"}
-                    }
-                }
+                "maxTimeoutSeconds": 300
             }]
         }), 402
     
