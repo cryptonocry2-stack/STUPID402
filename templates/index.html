@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STUPID404 NFT - Mystery Box Collection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            max-width: 600px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 72px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073; }
+            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6; }
+        }
+
+        .subtitle {
+            font-size: 24px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .mystery-box {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .stats {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .minted-counter {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        .minted-label {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .price-label {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .mint-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 3px solid white;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px 60px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .mint-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        .mint-button:active {
+            transform: scale(0.95);
+        }
+
+        .info {
+            margin-top: 40px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .info-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .info-text {
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .contract-link {
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .contract-link a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+
+        .contract-link a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            opacity: 0.5;
+        }
+
+        .sold-out {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        @media (max-width: 768px) {
+            .logo { font-size: 48px; }
+            .subtitle { font-size: 18px; }
+            .minted-counter { font-size: 36px; }
+            .price { font-size: 24px; }
+            .mint-button { font-size: 20px; padding: 15px 40px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">STUPID404</div>
+        <div class="subtitle">Mystery Box NFT Collection</div>
+
+        <div class="mystery-box">
+            🎁
+        </div>
+
+        <div class="stats">
+            <div class="minted-counter" id="counter">
+                <span class="loading">Loading...</span>
+            </div>
+            <div class="minted-label">NFTs Minted</div>
+            
+            <div class="price">1 USDC</div>
+            <div class="price-label">Mint Price</div>
+        </div>
+
+        <a href="https://www.x402scan.com/recipient/0xb6a7410897511a8657768c7e7cd7b34d78613c5f/resources" 
+           class="mint-button" 
+           id="mintButton"
+           target="_blank">
+            🚀 MINT NOW
+        </a>
+
+        <div class="info">
+            <div class="info-title">About STUPID404</div>
+            <div class="info-text">
+                Each NFT starts as a Mystery Box! 🎁<br>
+                After the reveal, your NFT will transform into a unique piece.<br>
+                Limited to 1,000 NFTs on Base network.<br>
+                Mint with USDC through x402 protocol.
+            </div>
+        </div>
+
+        <div class="contract-link">
+            <a href="https://basescan.org/address/{{ contract }}" target="_blank" id="contractLink">
+                View Contract on BaseScan
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Получаем данные о минте
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/info');
+                const data = await response.json();
+                
+                const minted = data.minted !== 'unknown' ? data.minted : '?';
+                const maxSupply = data.maxSupply || 1000;
+                
+                document.getElementById('counter').innerHTML = `${minted} / ${maxSupply}`;
+                
+                // Если все заминчено - меняем кнопку
+                if (minted !== '?' && minted >= maxSupply) {
+                    const button = document.getElementById('mintButton');
+                    button.textContent = '❌ SOLD OUT';
+                    button.classList.add('sold-out');
+                    button.style.cursor = 'not-allowed';
+                    button.onclick = (e) => e.preventDefault();
+                }
+                
+                // Обновляем ссылку на контракт
+                if (data.contract && data.contract !== '0x...') {
+                    document.getElementById('contractLink').href = 
+                        `https://basescan.org/address/${data.contract}`;
+                }
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+                document.getElementById('counter').innerHTML = '? / 1000';
+            }
+        }
+
+        // Обновляем при загрузке
+        updateStats();
+
+        // Обновляем каждые 10 секунд
+        setInterval(updateStats, 10000);
+    </script>
+</body>
+</html>
+
