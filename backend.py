@@ -192,7 +192,7 @@ def mint():
                 "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
                 "maxAmountRequired": str(MINT_PRICE),
                 "payTo": RECIPIENT_ADDRESS,
-                "resource": "https://stupid402.onrender.com/api/mint",
+                "resource": "https://stupidx402.onrender.com/api/mint",
                 "description": f"Mint STUPID402 NFT for {MINT_PRICE / 1000000} USDC",
                 "mimeType": "application/json",
                 "maxTimeoutSeconds": 300
