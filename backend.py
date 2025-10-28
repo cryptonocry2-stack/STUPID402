@@ -222,7 +222,7 @@ def mint():
         
         # Подписываем и отправляем
         signed = admin.sign_transaction(tx)
-        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
         
         print(f"🚀 NFT заминчен! TX: {tx_hash.hex()}")
         
@@ -294,6 +294,7 @@ if __name__ == '__main__':
     
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
 
