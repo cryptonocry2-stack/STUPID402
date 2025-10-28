@@ -64,6 +64,29 @@ NFT_ABI = [
 # X402 ФУНКЦИИ
 # ═══════════════════════════════════════════════════════════
 
+# ABI для USDC контракта (EIP-3009)
+USDC_ABI = [
+    {
+        "inputs": [
+            {"name": "from", "type": "address"},
+            {"name": "to", "type": "address"},
+            {"name": "value", "type": "uint256"},
+            {"name": "validAfter", "type": "uint256"},
+            {"name": "validBefore", "type": "uint256"},
+            {"name": "nonce", "type": "bytes32"},
+            {"name": "v", "type": "uint8"},
+            {"name": "r", "type": "bytes32"},
+            {"name": "s", "type": "bytes32"}
+        ],
+        "name": "receiveWithAuthorization",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]
+
+USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"  # USDC на Base
+
 def decode_x402_payment(x_payment_header):
     """Декодирует x-payment header из x402"""
     try:
@@ -89,9 +112,9 @@ def decode_x402_payment(x_payment_header):
         log(traceback.format_exc())
         return {'valid': False}
 
-def verify_x402_payment(x_payment_header):
-    """Проверяет x402 платеж (x402 сам выполняет перевод USDC!)"""
-    log("🔍 Проверяем x402 платеж...")
+def execute_x402_payment(x_payment_header):
+    """Выполняет receiveWithAuthorization для получения USDC"""
+    log("🔍 Начинаем выполнение платежа...")
     payment = decode_x402_payment(x_payment_header)
     
     if not payment['valid']:
@@ -109,8 +132,85 @@ def verify_x402_payment(x_payment_header):
         log(f"❌ Недостаточная сумма: {payment['value']} < {MINT_PRICE}")
         return False, f"Insufficient payment: {payment['value']} < {MINT_PRICE}"
     
-    log("✅ Платеж валиден! x402 выполнит перевод USDC автоматически")
-    return True, "Payment valid"
+    try:
+        log("💰 Выполняем receiveWithAuthorization...")
+        
+        # Парсим подпись
+        signature = payment['signature']
+        if signature.startswith('0x'):
+            signature = signature[2:]
+        
+        # EIP-2098 compact signature или standard
+        if len(signature) == 130:  # Standard: r (32) + s (32) + v (1) = 65 bytes = 130 hex chars
+            r = '0x' + signature[0:64]
+            s = '0x' + signature[64:128]
+            v = int(signature[128:130], 16)
+        else:
+            log(f"❌ Неправильная длина подписи: {len(signature)}")
+            return False, f"Invalid signature length: {len(signature)}"
+        
+        # Нормализуем v (должно быть 27 или 28)
+        if v < 27:
+            v += 27
+        
+        log(f"🔐 Подпись: v={v}, r={r[:10]}..., s={s[:10]}...")
+        
+        # Создаем контракт USDC
+        usdc_contract = w3.eth.contract(
+            address=Web3.to_checksum_address(USDC_ADDRESS),
+            abi=USDC_ABI
+        )
+        
+        # Получаем аккаунт админа (получателя)
+        admin = w3.eth.account.from_key(ADMIN_PRIVATE_KEY)
+        log(f"👤 Admin (получатель): {admin.address}")
+        
+        # Проверяем что admin.address == payment['to']
+        if admin.address.lower() != payment['to'].lower():
+            log(f"❌ Admin адрес не совпадает с получателем в платеже!")
+            log(f"   Admin: {admin.address}, Payment to: {payment['to']}")
+            return False, "Admin address mismatch"
+        
+        # Строим транзакцию receiveWithAuthorization
+        # Получатель (to) ДОЛЖЕН вызывать эту функцию от своего имени
+        tx = usdc_contract.functions.receiveWithAuthorization(
+            Web3.to_checksum_address(payment['from']),      # from (отправитель USDC)
+            Web3.to_checksum_address(payment['to']),        # to (получатель USDC, должен быть == admin)
+            payment['value'],                                # value
+            payment['validAfter'],                           # validAfter
+            payment['validBefore'],                          # validBefore
+            Web3.to_bytes(hexstr=payment['nonce']),         # nonce
+            v,                                               # v
+            Web3.to_bytes(hexstr=r),                        # r
+            Web3.to_bytes(hexstr=s)                         # s
+        ).build_transaction({
+            'from': admin.address,
+            'nonce': w3.eth.get_transaction_count(admin.address),
+            'gas': 200000,
+            'gasPrice': w3.eth.gas_price,
+            'chainId': 8453
+        })
+        
+        log("✍️ Подписываем и отправляем...")
+        signed = admin.sign_transaction(tx)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        
+        log(f"⏳ TX отправлена: {tx_hash.hex()}, ждем подтверждения...")
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+        
+        log(f"📋 Receipt: status={receipt['status']}, gasUsed={receipt['gasUsed']}")
+        
+        if receipt['status'] != 1:
+            log(f"❌ Транзакция провалилась!")
+            return False, "Payment transaction failed"
+        
+        log(f"💰 USDC получены! TX: {tx_hash.hex()}")
+        return True, "Payment successful"
+        
+    except Exception as e:
+        log(f"❌ Ошибка: {str(e)}")
+        log(f"📜 Traceback:\n{traceback.format_exc()}")
+        return False, f"Payment failed: {str(e)}"
 
 # ═══════════════════════════════════════════════════════════
 # API ENDPOINTS
@@ -206,16 +306,16 @@ def mint():
     
     log(f"📝 Запрос минта для: {to_address}")
     
-    # Проверяем x402 платеж (x402 сам выполнит перевод USDC!)
-    payment_valid, payment_message = verify_x402_payment(x_payment)
-    if not payment_valid:
-        log(f"❌ Платеж невалиден: {payment_message}")
+    # Выполняем receiveWithAuthorization для получения USDC
+    payment_success, payment_message = execute_x402_payment(x_payment)
+    if not payment_success:
+        log(f"❌ Платеж не выполнен: {payment_message}")
         return jsonify({
             "x402Version": 1,
             "error": payment_message
         }), 402
     
-    log(f"✅ Платеж валиден, минтим NFT...")
+    log(f"✅ USDC получены! Минтим NFT...")
     
     # Минтим NFT
     try:
