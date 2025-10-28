@@ -22,7 +22,7 @@ app = Flask(__name__)
 # НАСТРОЙКИ - ЗАПОЛНИ ИХ!
 # ═══════════════════════════════════════════════════════════
 
-BASE_RPC = "https://mainnet.base.org"
+BASE_RPC = "https://base.llamarpc.com"  # Публичный RPC без лимитов
 NFT_CONTRACT = os.getenv("NFT_CONTRACT", "0x...")  # Адрес твоего NFT контракта
 ADMIN_PRIVATE_KEY = os.getenv("ADMIN_KEY")  # Приватный ключ для минта NFT
 MINT_PRICE = int(os.getenv("MINT_PRICE", "1000000"))  # Цена в USDC (1000000 = 1 USDC)
@@ -184,7 +184,7 @@ def mint():
     
     # Если нет x-payment, возвращаем информацию о платеже (x402 accepts)
     if not x_payment:
-        return jsonify({
+        response = jsonify({
             "x402Version": 1,
             "accepts": [{
                 "scheme": "exact",
@@ -197,7 +197,10 @@ def mint():
                 "mimeType": "application/json",
                 "maxTimeoutSeconds": 300
             }]
-        }), 402
+        })
+        response.status_code = 402
+        response.headers['Content-Type'] = 'application/json'
+        return response
     
     # Декодируем платеж, чтобы узнать отправителя
     payment = decode_x402_payment(x_payment)
