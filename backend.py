@@ -82,9 +82,21 @@ NFT_ABI = [
 def decode_x402_payment(x_payment_header):
     """Декодирует x-payment header из x402"""
     try:
+        # Проверка на пустой x-payment
+        if not x_payment_header:
+            log(f"❌ x-payment пустой")
+            return {'valid': False, 'error': 'Empty x-payment'}
+        
         # Декодируем base64
         decoded = base64.b64decode(x_payment_header)
         payment_data = json.loads(decoded.decode('utf-8'))
+        
+        # Проверяем обязательные поля
+        required_fields = ['from', 'to', 'value', 'nonce', 'validAfter', 'validBefore', 'signature']
+        for field in required_fields:
+            if not payment_data.get(field):
+                log(f"❌ Отсутствует обязательное поле: {field}")
+                return {'valid': False, 'error': f'Missing field: {field}'}
         
         log(f"✅ Платеж декодирован: from={payment_data.get('from')}, to={payment_data.get('to')}, value={payment_data.get('value')}")
         
@@ -163,7 +175,11 @@ def facilitate():
         ]
         
         # Парсим подпись
-        signature = payment_data['signature']
+        signature = payment_data.get('signature')
+        if not signature:
+            log(f"❌ Отсутствует подпись в платеже")
+            return jsonify({"error": "Missing signature"}), 400
+        
         if signature.startswith('0x'):
             signature = signature[2:]
         
