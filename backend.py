@@ -220,7 +220,7 @@ def mint():
                     "version": "2",
                     "primaryType": "TransferWithAuthorization",
                     "projectName": "STUPID402",
-                    "projectDescription": "STUPID402 NFT - Mystery Box Collection. 1,000 max supply. Pure collectible on Base.",
+                    "projectDescription": "STUPID402 NFT",
                     "website": "https://stupidx402.onrender.com",
                     "icon": "https://stupidx402.onrender.com/static/icon.png"
                 }
@@ -504,4 +504,5 @@ if __name__ == '__main__':
     
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
