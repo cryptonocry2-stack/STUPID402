@@ -91,32 +91,54 @@ def decode_x402_payment(x_payment_header):
         decoded = base64.b64decode(x_payment_header)
         payment_data = json.loads(decoded.decode('utf-8'))
         
-        # Проверяем обязательные поля
-        required_fields = ['from', 'to', 'value', 'nonce', 'validAfter', 'validBefore', 'signature']
-        for field in required_fields:
-            if not payment_data.get(field):
-                log(f"❌ Отсутствует обязательное поле: {field}")
-                return {'valid': False, 'error': f'Missing field: {field}'}
+        # x402scan использует новую структуру с вложенными полями
+        # Проверяем, есть ли payload.authorization (новый формат)
+        if 'payload' in payment_data and 'authorization' in payment_data['payload']:
+            auth = payment_data['payload']['authorization']
+            signature = payment_data['payload'].get('signature')
+            
+            # Извлекаем данные из authorization
+            from_addr = auth.get('from')
+            to_addr = auth.get('to')
+            value = auth.get('value')
+            nonce = auth.get('nonce')
+            valid_after = auth.get('validAfter')
+            valid_before = auth.get('validBefore')
+        else:
+            # Старый формат (плоский)
+            from_addr = payment_data.get('from')
+            to_addr = payment_data.get('to')
+            value = payment_data.get('value')
+            nonce = payment_data.get('nonce')
+            valid_after = payment_data.get('validAfter')
+            valid_before = payment_data.get('validBefore')
+            signature = payment_data.get('signature')
         
-        log(f"✅ Платеж декодирован: from={payment_data.get('from')}, to={payment_data.get('to')}, value={payment_data.get('value')}")
+        # Проверяем обязательные поля
+        if not all([from_addr, to_addr, value, nonce, valid_after, valid_before, signature]):
+            log(f"❌ Отсутствуют обязательные поля")
+            return {'valid': False, 'error': 'Missing required fields'}
+        
+        log(f"✅ Платеж декодирован: from={from_addr}, to={to_addr}, value={value}")
         
         # Генерируем уникальный txHash для этой транзакции
-        tx_hash = Web3.keccak(text=f"{payment_data.get('from')}{payment_data.get('nonce')}{payment_data.get('validBefore')}").hex()
+        tx_hash = Web3.keccak(text=f"{from_addr}{nonce}{valid_before}").hex()
         log(f"🔐 Сгенерирован txHash: {tx_hash}")
         
         return {
             'valid': True,
-            'from': payment_data.get('from'),
-            'to': payment_data.get('to'),
-            'value': payment_data.get('value'),
-            'nonce': payment_data.get('nonce'),
-            'validAfter': payment_data.get('validAfter'),
-            'validBefore': payment_data.get('validBefore'),
-            'signature': payment_data.get('signature'),
+            'from': from_addr,
+            'to': to_addr,
+            'value': value,
+            'nonce': nonce,
+            'validAfter': valid_after,
+            'validBefore': valid_before,
+            'signature': signature,
             'txHash': tx_hash
         }
     except Exception as e:
         log(f"❌ Ошибка декодирования x-payment: {e}")
+        log(f"📜 Traceback: {traceback.format_exc()}")
         return {'valid': False, 'error': str(e)}
 
 # ═══════════════════════════════════════════════════════════
