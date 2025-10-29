@@ -185,17 +185,45 @@ def mint():
     # Если нет x-payment, возвращаем информацию о платеже (x402 accepts)
     if not x_payment:
         response = jsonify({
+            "error": "Payment required to access this resource",
             "x402Version": 1,
+            "facilitator": "https://facilitator.thirdweb.com",
             "accepts": [{
                 "scheme": "exact",
                 "network": "base",
-                "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
                 "maxAmountRequired": str(MINT_PRICE),
                 "payTo": RECIPIENT_ADDRESS,
                 "resource": "https://stupidx402.onrender.com/api/mint",
-                "description": f"Mint STUPID402 NFT for {MINT_PRICE / 1000000} USDC",
+                "description": "Mint 1 STUPID402 NFT.",
                 "mimeType": "application/json",
-                "maxTimeoutSeconds": 300
+                "maxTimeoutSeconds": 300,
+                "outputSchema": {
+                    "input": {
+                        "type": "http",
+                        "method": "GET",
+                        "discoverable": True
+                    },
+                    "output": {
+                        "type": "object",
+                        "properties": {
+                            "success": {"type": "boolean"},
+                            "tx": {"type": "string"},
+                            "to": {"type": "string"},
+                            "tokenId": {"type": "number"}
+                        }
+                    }
+                },
+                "extra": {
+                    "recipientAddress": RECIPIENT_ADDRESS,
+                    "name": "USD Coin",
+                    "version": "2",
+                    "primaryType": "TransferWithAuthorization",
+                    "projectName": "STUPID402",
+                    "projectDescription": "STUPID402 NFT - Mystery Box Collection. 1,000 max supply. Pure collectible on Base.",
+                    "website": "https://stupidx402.onrender.com",
+                    "icon": "https://stupidx402.onrender.com/static/icon.png"
+                }
             }]
         })
         response.status_code = 402
