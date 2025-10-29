@@ -22,7 +22,7 @@ app = Flask(__name__)
 # НАСТРОЙКИ - ЗАПОЛНИ ИХ!
 # ═══════════════════════════════════════════════════════════
 
-BASE_RPC = "https://base.llamarpc.com"  # Публичный RPC без лимитов
+BASE_RPC = "https://rpc.ankr.com/base/13ca64398a6a0125df8e188d1525542811320f016be33834bba2f4f32be7c4c8"  # Публичный RPC без лимитов
 NFT_CONTRACT = os.getenv("NFT_CONTRACT", "0x...")  # Адрес твоего NFT контракта
 ADMIN_PRIVATE_KEY = os.getenv("ADMIN_KEY")  # Приватный ключ для минта NFT
 MINT_PRICE = int(os.getenv("MINT_PRICE", "1000000"))  # Цена в USDC (1000000 = 1 USDC)
@@ -504,5 +504,6 @@ if __name__ == '__main__':
     
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
