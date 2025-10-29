@@ -187,7 +187,7 @@ def mint():
         response = jsonify({
             "error": "Payment required to access this resource",
             "x402Version": 1,
-            "facilitator": "https://facilitator.thirdweb.com",
+            "facilitator": "https://stupidx402.onrender.com/api/facilitate",
             "accepts": [{
                 "scheme": "exact",
                 "network": "base",
@@ -254,91 +254,7 @@ def mint():
         }), 402
     
     log(f"✅ Платеж валиден! txHash: {tx_hash}")
-    
-    # ВЫПОЛНЯЕМ USDC TRANSFER (submit подписи пользователя в USDC контракт)
-    try:
-        log("💰 Выполняем USDC transfer...")
-        payment_data = decode_x402_payment(x_payment)
-        
-        # USDC ABI для transferWithAuthorization
-        usdc_abi = [
-            {
-                "inputs": [
-                    {"name": "from", "type": "address"},
-                    {"name": "to", "type": "address"},
-                    {"name": "value", "type": "uint256"},
-                    {"name": "validAfter", "type": "uint256"},
-                    {"name": "validBefore", "type": "uint256"},
-                    {"name": "nonce", "type": "bytes32"},
-                    {"name": "v", "type": "uint8"},
-                    {"name": "r", "type": "bytes32"},
-                    {"name": "s", "type": "bytes32"}
-                ],
-                "name": "transferWithAuthorization",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ]
-        
-        # Получаем компоненты подписи (v, r, s)
-        signature = payment_data['signature']
-        if signature.startswith('0x'):
-            signature = signature[2:]
-        
-        sig_bytes = bytes.fromhex(signature)
-        r = int.from_bytes(sig_bytes[:32], 'big')
-        s = int.from_bytes(sig_bytes[32:64], 'big')
-        v = sig_bytes[64]
-        
-        # Создаем контракт USDC
-        usdc_contract = w3.eth.contract(
-            address=Web3.to_checksum_address("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"),
-            abi=usdc_abi
-        )
-        
-        admin = w3.eth.account.from_key(ADMIN_PRIVATE_KEY)
-        
-        # Вызываем transferWithAuthorization (admin платит gas, но transfer от пользователя)
-        usdc_tx = usdc_contract.functions.transferWithAuthorization(
-            Web3.to_checksum_address(payment_data['from']),
-            Web3.to_checksum_address(payment_data['to']),
-            int(payment_data['value']),
-            int(payment_data['validAfter']),
-            int(payment_data['validBefore']),
-            Web3.to_bytes(hexstr=payment_data['nonce']),
-            v,
-            r,
-            s
-        ).build_transaction({
-            'from': admin.address,
-            'nonce': w3.eth.get_transaction_count(admin.address),
-            'gas': 150000,
-            'maxFeePerGas': w3.eth.gas_price * 2,
-            'maxPriorityFeePerGas': w3.to_wei('0.001', 'gwei'),
-            'chainId': 8453
-        })
-        
-        signed_usdc = admin.sign_transaction(usdc_tx)
-        usdc_tx_hash = w3.eth.send_raw_transaction(signed_usdc.raw_transaction)
-        
-        log(f"💸 USDC transfer TX: {usdc_tx_hash.hex()}")
-        
-        # Ждем подтверждения transfer (быстро, не блокируем надолго)
-        try:
-            receipt = w3.eth.wait_for_transaction_receipt(usdc_tx_hash, timeout=10)
-            if receipt.status == 1:
-                log(f"✅ USDC transfer confirmed!")
-            else:
-                log(f"⚠️ USDC transfer failed in receipt")
-        except:
-            log(f"⏳ USDC transfer отправлен, ждем подтверждения в фоне...")
-        
-    except Exception as e:
-        log(f"❌ Ошибка USDC transfer: {str(e)}")
-        log(f"📜 Traceback:\n{traceback.format_exc()}")
-        # НЕ возвращаем ошибку - продолжаем минт NFT даже если transfer провалился
-        log("⚠️ Продолжаем минт NFT несмотря на ошибку transfer...")
+    log(f"ℹ️ USDC transfer должен быть выполнен facilitator или вручную")
     
     # Минтим NFT
     try:
@@ -429,6 +345,112 @@ def info():
 def health():
     """Health check"""
     return jsonify({"status": "ok"})
+
+@app.route('/api/facilitate', methods=['POST', 'OPTIONS'])
+def facilitate():
+    """
+    Facilitator endpoint - выполняет USDC transfer используя подпись пользователя
+    """
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        # Получаем x-payment из body или headers
+        x_payment = request.headers.get('x-payment') or request.json.get('payment')
+        
+        if not x_payment:
+            return jsonify({"error": "Missing x-payment"}), 400
+        
+        log("🔧 Facilitator: начинаем USDC transfer...")
+        payment_data = decode_x402_payment(x_payment)
+        
+        if not payment_data['valid']:
+            return jsonify({"error": "Invalid payment"}), 400
+        
+        # USDC ABI для transferWithAuthorization
+        usdc_abi = [
+            {
+                "inputs": [
+                    {"name": "from", "type": "address"},
+                    {"name": "to", "type": "address"},
+                    {"name": "value", "type": "uint256"},
+                    {"name": "validAfter", "type": "uint256"},
+                    {"name": "validBefore", "type": "uint256"},
+                    {"name": "nonce", "type": "bytes32"},
+                    {"name": "v", "type": "uint8"},
+                    {"name": "r", "type": "bytes32"},
+                    {"name": "s", "type": "bytes32"}
+                ],
+                "name": "transferWithAuthorization",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ]
+        
+        # Парсим подпись
+        signature = payment_data['signature']
+        if signature.startswith('0x'):
+            signature = signature[2:]
+        
+        sig_bytes = bytes.fromhex(signature)
+        r = int.from_bytes(sig_bytes[:32], 'big')
+        s = int.from_bytes(sig_bytes[32:64], 'big')
+        v = sig_bytes[64]
+        
+        # USDC контракт
+        usdc_contract = w3.eth.contract(
+            address=Web3.to_checksum_address("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"),
+            abi=usdc_abi
+        )
+        
+        admin = w3.eth.account.from_key(ADMIN_PRIVATE_KEY)
+        
+        # Вызываем transferWithAuthorization
+        usdc_tx = usdc_contract.functions.transferWithAuthorization(
+            Web3.to_checksum_address(payment_data['from']),
+            Web3.to_checksum_address(payment_data['to']),
+            int(payment_data['value']),
+            int(payment_data['validAfter']),
+            int(payment_data['validBefore']),
+            Web3.to_bytes(hexstr=payment_data['nonce']),
+            v,
+            r,
+            s
+        ).build_transaction({
+            'from': admin.address,
+            'nonce': w3.eth.get_transaction_count(admin.address),
+            'gas': 150000,
+            'maxFeePerGas': w3.eth.gas_price * 2,
+            'maxPriorityFeePerGas': w3.to_wei('0.001', 'gwei'),
+            'chainId': 8453
+        })
+        
+        signed_usdc = admin.sign_transaction(usdc_tx)
+        usdc_tx_hash = w3.eth.send_raw_transaction(signed_usdc.raw_transaction)
+        
+        log(f"💸 Facilitator: USDC transfer TX: {usdc_tx_hash.hex()}")
+        
+        # Ждем подтверждения
+        receipt = w3.eth.wait_for_transaction_receipt(usdc_tx_hash, timeout=30)
+        
+        if receipt.status == 1:
+            log(f"✅ Facilitator: USDC transfer успешен!")
+            return jsonify({
+                "success": True,
+                "tx": usdc_tx_hash.hex(),
+                "from": payment_data['from'],
+                "to": payment_data['to'],
+                "value": payment_data['value']
+            })
+        else:
+            log(f"❌ Facilitator: USDC transfer провалился")
+            return jsonify({"error": "Transfer failed"}), 500
+            
+    except Exception as e:
+        log(f"❌ Facilitator error: {str(e)}")
+        log(f"📜 Traceback:\n{traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500
 
 # ═══════════════════════════════════════════════════════════
 # CORS для x402scan.com
