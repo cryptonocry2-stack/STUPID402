@@ -423,8 +423,8 @@ def facilitate():
             signature = signature[2:]
         
         sig_bytes = bytes.fromhex(signature)
-        r = int.from_bytes(sig_bytes[:32], 'big')
-        s = int.from_bytes(sig_bytes[32:64], 'big')
+        r = sig_bytes[:32]  # bytes32, НЕ int!
+        s = sig_bytes[32:64]  # bytes32, НЕ int!
         v = sig_bytes[64]
         
         # USDC контракт
