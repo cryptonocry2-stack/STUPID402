@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STUPID402 NFT - Mystery Box Collection</title>
+    <title>STUPID 402</title>
     <style>
         * {
             margin: 0;
@@ -12,212 +12,144 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(180deg, #00d9ff 0%, #0066ff 50%, #6600ff 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: white;
+            position: relative;
         }
 
         .container {
-            max-width: 600px;
-            padding: 40px;
             text-align: center;
+            z-index: 10;
         }
 
-        .logo {
-            font-size: 72px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-            animation: glow 2s ease-in-out infinite alternate;
+        .title {
+            font-size: 120px;
+            font-weight: 900;
+            letter-spacing: -3px;
+            margin-bottom: 60px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
-        @keyframes glow {
-            from { text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073; }
-            to { text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6; }
-        }
-
-        .subtitle {
-            font-size: 24px;
-            margin-bottom: 40px;
-            opacity: 0.9;
-        }
-
-        .mystery-box {
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 40px;
+        .counter-box {
             background: rgba(255,255,255,0.1);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 100px;
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255,255,255,0.2);
-            animation: float 3s ease-in-out infinite;
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 50px 80px;
+            margin-bottom: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+        .counter {
+            font-size: 72px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .stats {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-
-        .minted-counter {
-            font-size: 48px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #fff;
-        }
-
-        .minted-label {
-            font-size: 18px;
-            opacity: 0.8;
-            margin-bottom: 20px;
-        }
-
-        .price {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ffd700;
-            margin-bottom: 10px;
-        }
-
-        .price-label {
-            font-size: 16px;
-            opacity: 0.8;
+        .counter-label {
+            font-size: 20px;
+            opacity: 0.9;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         .mint-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: 3px solid white;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            padding: 20px 60px;
+            background: white;
+            color: #0066ff;
+            font-size: 22px;
+            font-weight: 700;
+            padding: 22px 60px;
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
         }
 
         .mint-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.4);
         }
 
         .mint-button:active {
-            transform: scale(0.95);
+            transform: translateY(0px);
         }
 
-        .info {
-            margin-top: 40px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 20px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-
-        .info-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .info-text {
-            font-size: 16px;
-            line-height: 1.6;
-            opacity: 0.9;
-        }
-
-        .contract-link {
-            margin-top: 30px;
-            font-size: 14px;
-            opacity: 0.7;
-        }
-
-        .contract-link a {
-            color: #ffd700;
+        .twitter-link {
+            display: inline-block;
+            color: white;
             text-decoration: none;
+            font-size: 18px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+            font-weight: 500;
         }
 
-        .contract-link a:hover {
-            text-decoration: underline;
-        }
-
-        .loading {
-            opacity: 0.5;
+        .twitter-link:hover {
+            opacity: 1;
         }
 
         .sold-out {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            background: #ff4444;
+            cursor: not-allowed;
         }
 
         @media (max-width: 768px) {
-            .logo { font-size: 48px; }
-            .subtitle { font-size: 18px; }
-            .minted-counter { font-size: 36px; }
-            .price { font-size: 24px; }
-            .mint-button { font-size: 20px; padding: 15px 40px; }
+            .title { 
+                font-size: 60px; 
+                margin-bottom: 40px;
+            }
+            .counter-box { 
+                padding: 30px 40px; 
+            }
+            .counter { 
+                font-size: 48px; 
+            }
+            .counter-label { 
+                font-size: 16px; 
+            }
+            .mint-button { 
+                font-size: 18px; 
+                padding: 18px 45px; 
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">STUPID402</div>
-        <div class="subtitle">Mystery Box NFT Collection</div>
+        <h1 class="title">STUPID 402</h1>
 
-        <div class="mystery-box">
-            🎁
-        </div>
-
-        <div class="stats">
-            <div class="minted-counter" id="counter">
-                <span class="loading">Loading...</span>
-            </div>
-            <div class="minted-label">NFTs Minted</div>
-            
-            <div class="price">1 USDC</div>
-            <div class="price-label">Mint Price</div>
+        <div class="counter-box">
+            <div class="counter" id="counter">— / 1000</div>
+            <div class="counter-label">Minted</div>
         </div>
 
         <a href="https://www.x402scan.com/recipient/0x51472b6d2316f11B208485698deDE6E562BdDe46/resources" 
            class="mint-button" 
            id="mintButton"
            target="_blank">
-            🚀 MINT NOW
+            MINT NOW
         </a>
 
-        <div class="info">
-            <div class="info-title">About STUPID402</div>
-            <div class="info-text">
-                Each NFT starts as a Mystery Box! 🎁<br>
-                After the reveal, your NFT will transform into a unique piece.<br>
-                Limited to 1,000 NFTs on Base network.<br>
-                Mint with USDC through x402 protocol.
-            </div>
-        </div>
+        <br><br>
 
-        <div class="contract-link">
-            <a href="https://basescan.org/address/{{ contract }}" target="_blank" id="contractLink">
-                View Contract on BaseScan
-            </a>
-        </div>
+        <a href="https://x.com/stupid402" 
+           class="twitter-link" 
+           target="_blank">
+            @stupid402
+        </a>
     </div>
 
     <script>
@@ -227,28 +159,21 @@
                 const response = await fetch('/api/info');
                 const data = await response.json();
                 
-                const minted = data.minted !== 'unknown' ? data.minted : '?';
+                const minted = data.minted !== 'unknown' ? data.minted : '—';
                 const maxSupply = data.maxSupply || 1000;
                 
-                document.getElementById('counter').innerHTML = `${minted} / ${maxSupply}`;
+                document.getElementById('counter').textContent = `${minted} / ${maxSupply}`;
                 
-                // Если все заминчено - меняем кнопку
-                if (minted !== '?' && minted >= maxSupply) {
+                if (minted !== '—' && minted >= maxSupply) {
                     const button = document.getElementById('mintButton');
-                    button.textContent = '❌ SOLD OUT';
+                    button.textContent = 'SOLD OUT';
                     button.classList.add('sold-out');
                     button.style.cursor = 'not-allowed';
                     button.onclick = (e) => e.preventDefault();
                 }
-                
-                // Обновляем ссылку на контракт
-                if (data.contract && data.contract !== '0x...') {
-                    document.getElementById('contractLink').href = 
-                        `https://basescan.org/address/${data.contract}`;
-                }
             } catch (error) {
-                console.error('Error fetching stats:', error);
-                document.getElementById('counter').innerHTML = '? / 1000';
+                console.error('Error:', error);
+                document.getElementById('counter').textContent = '— / 1000';
             }
         }
 
