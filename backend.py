@@ -232,7 +232,7 @@ def mint():
         log("💰 Выполняем USDC transfer...")
         payment_data = decode_x402_payment(x_payment)
         
-        # USDC ABI для receiveWithAuthorization
+        # USDC ABI для transferWithAuthorization
         usdc_abi = [
             {
                 "inputs": [
@@ -246,7 +246,7 @@ def mint():
                     {"name": "r", "type": "bytes32"},
                     {"name": "s", "type": "bytes32"}
                 ],
-                "name": "receiveWithAuthorization",
+                "name": "transferWithAuthorization",
                 "outputs": [],
                 "stateMutability": "nonpayable",
                 "type": "function"
@@ -271,8 +271,8 @@ def mint():
         
         admin = w3.eth.account.from_key(ADMIN_PRIVATE_KEY)
         
-        # Вызываем receiveWithAuthorization
-        usdc_tx = usdc_contract.functions.receiveWithAuthorization(
+        # Вызываем transferWithAuthorization
+        usdc_tx = usdc_contract.functions.transferWithAuthorization(
             Web3.to_checksum_address(payment_data['from']),
             Web3.to_checksum_address(payment_data['to']),
             int(payment_data['value']),
