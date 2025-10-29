@@ -125,7 +125,12 @@ def facilitate():
         return '', 204
     
     try:
-        x_payment = request.headers.get('x-payment') or request.json.get('payment')
+        x_payment = request.headers.get('x-payment')
+        if not x_payment and request.is_json:
+            try:
+                x_payment = request.json.get('payment')
+            except:
+                pass
         
         if not x_payment:
             return jsonify({"error": "Missing x-payment"}), 400
@@ -234,8 +239,11 @@ def mint():
     try:
         # Получаем x-payment из headers или body
         x_payment = request.headers.get('x-payment')
-        if not x_payment and request.json:
-            x_payment = request.json.get('payment')
+        if not x_payment and request.is_json:
+            try:
+                x_payment = request.json.get('payment')
+            except:
+                pass
         
         log(f"📝 Запрос минта для: {request.headers.get('x-forwarded-for', request.remote_addr)}")
         
