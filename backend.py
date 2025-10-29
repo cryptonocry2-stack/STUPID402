@@ -254,7 +254,36 @@ def mint():
         }), 402
     
     log(f"✅ Платеж валиден! txHash: {tx_hash}")
-    log(f"ℹ️ USDC transfer должен быть выполнен facilitator или вручную")
+    
+    # ВЫПОЛНЯЕМ USDC TRANSFER СРАЗУ
+    usdc_transfer_success = False
+    try:
+        log("💰 Вызываем facilitator для USDC transfer...")
+        
+        # Вызываем свой facilitator
+        import requests as req
+        facilitate_response = req.post(
+            "https://stupidx402.onrender.com/api/facilitate",
+            headers={"x-payment": x_payment},
+            json={"payment": x_payment},
+            timeout=60
+        )
+        
+        if facilitate_response.status_code == 200:
+            log(f"✅ USDC transfer выполнен! TX: {facilitate_response.json().get('tx')}")
+            usdc_transfer_success = True
+        else:
+            log(f"❌ USDC transfer failed: {facilitate_response.text}")
+    except Exception as e:
+        log(f"⚠️ Ошибка facilitator: {str(e)}")
+    
+    # Если USDC transfer не прошел - возвращаем ошибку
+    if not usdc_transfer_success:
+        log("❌ Останавливаем минт - USDC не списались")
+        return jsonify({
+            "x402Version": 1,
+            "error": "USDC transfer failed"
+        }), 500
     
     # Минтим NFT
     try:
